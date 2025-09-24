@@ -45,10 +45,10 @@ def download_image(url, filename):
 def main():
     names = get_names()
     for idx, name in enumerate(names, start=1):
-        search_query = f"{name} logo"
+        search_query = f"{name}"
         image_url = search_image(search_query)
         if image_url:
-            download_image(image_url, f"logos/{idx}.png")
+            download_image(image_url, f"logos/{name}.png")
         
         # sleep(1)
 
