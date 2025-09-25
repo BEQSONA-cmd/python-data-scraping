@@ -2,7 +2,6 @@ import json
 import os
 import csv
 import random
-from time import sleep
 
 names = []
 

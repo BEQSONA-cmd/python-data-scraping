@@ -3,11 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 from PIL import Image
 from io import BytesIO
-from time import sleep
 
-# Create logos directory if not exists
-if not os.path.exists("logos"):
-    os.makedirs("logos")
 
 def get_names():
     file = "names.csv"
@@ -15,6 +11,11 @@ def get_names():
         with open(file, "r", encoding="utf-8") as f:
             return [line.strip() for line in f]
     return []
+
+
+def rule(img: Image.Image):
+    return img.width > img.height
+
 
 def search_image(query):
     search_url = f"https://www.google.com/search?tbm=isch&q={query.replace(' ', '+')}"
@@ -28,10 +29,25 @@ def search_image(query):
     soup = BeautifulSoup(response.text, "html.parser")
     img_tags = soup.find_all("img")
 
-    # First image is usually Google's logo, so take the second one
-    if len(img_tags) > 1:
-        return img_tags[1]["src"]
-    return None
+    # Skip the first one (Google logo), start from 1
+    for img_tag in img_tags[1:]:
+        url = img_tag.get("src")
+        if not url:
+            continue
+
+        # Try downloading to check dimensions
+        try:
+            r = requests.get(url, headers=headers, timeout=5)
+            if r.status_code == 200:
+                img = Image.open(BytesIO(r.content))
+                if rule(img):  # check landscape rule
+                    return url
+        except Exception as e:
+            print(f"Error checking image: {e}")
+            continue
+
+    return None  # no image passed the rule
+
 
 def download_image(url, filename):
     response = requests.get(url)
@@ -42,15 +58,17 @@ def download_image(url, filename):
     else:
         print(f"Failed to download {url}")
 
+
 def main():
+    if not os.path.exists("pics"):
+        os.makedirs("pics")
     names = get_names()
-    for idx, name in enumerate(names, start=1):
-        search_query = f"{name}"
+    for name in names:
+        search_query = f"რესტორანი {name}"
         image_url = search_image(search_query)
         if image_url:
-            download_image(image_url, f"logos/{name}.png")
-        
-        # sleep(1)
+            download_image(image_url, f"pics/{name}.png")
+
 
 if __name__ == "__main__":
     main()
